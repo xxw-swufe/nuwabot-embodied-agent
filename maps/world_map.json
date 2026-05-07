@@ -1,0 +1,32 @@
+{
+  "frame": "world",
+  "resolution_m": 0.25,
+  "bounds": {
+    "min_x": -3.0,
+    "max_x": 3.0,
+    "min_y": -3.0,
+    "max_y": 3.0
+  },
+  "robot_radius_m": 0.35,
+  "obstacles": [
+    {
+      "type": "box",
+      "center_x": 0.0,
+      "center_y": 0.0,
+      "size_x": 0.12,
+      "size_y": 4.0
+    }
+  ],
+  "locations": {
+    "entrance": {
+      "label": "入口",
+      "x": -2.6,
+      "y": 0.0
+    },
+    "exit": {
+      "label": "出口",
+      "x": 2.6,
+      "y": 0.0
+    }
+  }
+}
