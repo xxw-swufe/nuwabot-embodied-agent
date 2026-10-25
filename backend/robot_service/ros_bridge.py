@@ -10,19 +10,15 @@ from typing import Any
 try:
     import rclpy
     from geometry_msgs.msg import Twist
-    from geometry_msgs.msg import TransformStamped
     from nav_msgs.msg import Odometry
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.node import Node
-    from tf2_ros import TransformBroadcaster
 except ImportError:  # pragma: no cover - allows import outside ROS env
     rclpy = None
     SingleThreadedExecutor = object  # type: ignore[assignment]
     Twist = object  # type: ignore[assignment]
-    TransformStamped = object  # type: ignore[assignment]
     Odometry = object  # type: ignore[assignment]
     Node = object  # type: ignore[assignment]
-    TransformBroadcaster = object  # type: ignore[assignment]
 
 
 @dataclass
@@ -46,20 +42,14 @@ class _CmdVelNode(Node):  # type: ignore[misc]
         self._odom_topic = odom_topic
         self._publisher = self.create_publisher(Twist, "/cmd_vel", 10)
         self._subscription = self.create_subscription(Odometry, odom_topic, self._on_odom, 10)
-        self._tf_broadcaster = TransformBroadcaster(self)
-        self._world_frame = "world"
-        self._base_footprint_frame = "base_footprint"
-        self._last_stamp = self.get_clock().now().to_msg()
 
     def _on_odom(self, msg: Odometry) -> None:
         pose = msg.pose.pose.position
         twist = msg.twist.twist
-        yaw = self._quat_to_yaw(msg.pose.pose.orientation.z, msg.pose.pose.orientation.w)
-        self._last_stamp = msg.header.stamp
         self._state.odom = OdomSnapshot(
             x=float(pose.x),
             y=float(pose.y),
-            yaw=yaw,
+            yaw=self._quat_to_yaw(msg.pose.pose.orientation.z, msg.pose.pose.orientation.w),
             linear_x=float(twist.linear.x),
             linear_y=float(twist.linear.y),
             angular_z=float(twist.angular.z),
@@ -68,7 +58,6 @@ class _CmdVelNode(Node):  # type: ignore[misc]
             child_frame_id=str(msg.child_frame_id),
             source_topic=self._odom_topic,
         )
-        self._publish_world_transform(float(pose.x), float(pose.y), float(yaw))
 
     @staticmethod
     def _quat_to_yaw(z: float, w: float) -> float:
@@ -76,21 +65,6 @@ class _CmdVelNode(Node):  # type: ignore[misc]
         siny_cosp = 2.0 * (w * z)
         cosy_cosp = 1.0 - 2.0 * (z * z)
         return float(atan2(siny_cosp, cosy_cosp))
-
-    def _publish_world_transform(self, x: float, y: float, yaw: float) -> None:
-        transform = TransformStamped()
-        transform.header.stamp = self._last_stamp
-        transform.header.frame_id = self._world_frame
-        transform.child_frame_id = self._base_footprint_frame
-        transform.transform.translation.x = float(x)
-        transform.transform.translation.y = float(y)
-        transform.transform.translation.z = 0.0
-        half_yaw = float(yaw) / 2.0
-        transform.transform.rotation.x = 0.0
-        transform.transform.rotation.y = 0.0
-        transform.transform.rotation.z = sin(half_yaw)
-        transform.transform.rotation.w = cos(half_yaw)
-        self._tf_broadcaster.sendTransform(transform)
 
 
 @dataclass

@@ -10,8 +10,8 @@
 
 当前保留两套 Nav2 参数：
 
-- `maps/nav2_params_odom.yaml`：WORLD 验证模式。不需要 `map -> odom`，适合确认 Nav2 controller/planner 能启动，并且和 `/odom/ground_truth` 的 `world` 坐标对齐。
 - `maps/nav2_params.yaml`：MAP 正式模式。用于建图、定位和正式导航，需要系统发布 `map -> odom -> base_link` TF。
+- `maps/nav2_params_odom.yaml`：调试用纯 `odom` 验证模式。适合确认控制器和规划器能否启动。
 
 建图时不是“用 ODOM 模式建图”。正确关系是：
 
@@ -20,11 +20,11 @@ odom: 机器人局部里程计坐标
 world: 仿真真值坐标，通常由 `/odom/ground_truth` 提供
 map: 建图/定位后的全局地图坐标
 SLAM 或 AMCL: 发布 map -> odom
-Nav2 WORLD 验证: 目标点使用 world frame
 Nav2 正式导航: 目标点使用 map frame
+Nav2 `odom` 验证: 只用于调试，不作为最终巡查方案
 ```
 
-## 启动 WORLD 验证模式
+## 启动 `map` 正式模式
 
 先启动 Gazebo 和机器狗控制：
 
@@ -37,32 +37,32 @@ ros2 launch go2_config gazebo.launch.py rviz:=true
 ```bash
 ros2 launch nav2_bringup navigation_launch.py \
   use_sim_time:=true \
-  params_file:=/home/xx/nuwabot-sim-agent/maps/nav2_params_odom.yaml
+  params_file:=/home/xx/nuwabot-sim-agent/maps/nav2_params.yaml
 ```
 
 最后重启 API 服务：
 
 ```bash
 cd /home/xx/nuwabot-sim-agent/backend/robot_service
-export ROBOT_NAV2_FRAME=world
+export ROBOT_NAV2_FRAME=map
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 启动 MAP 正式模式
+## 启动 `odom` 调试模式
 
 先启动 SLAM/AMCL 或其它定位模块，确认已经有 `map -> odom -> base_link` TF。然后启动：
 
 ```bash
 ros2 launch nav2_bringup navigation_launch.py \
   use_sim_time:=true \
-  params_file:=/home/xx/nuwabot-sim-agent/maps/nav2_params.yaml
+  params_file:=/home/xx/nuwabot-sim-agent/maps/nav2_params_odom.yaml
 ```
 
-API 服务使用默认 `map` frame：
+API 服务使用调试 frame：
 
 ```bash
 cd /home/xx/nuwabot-sim-agent/backend/robot_service
-export ROBOT_NAV2_FRAME=map
+export ROBOT_NAV2_FRAME=odom
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
@@ -92,12 +92,12 @@ curl -X POST "https://appraiser-tactics-racing.ngrok-free.dev/robot/go_to_locati
 
 ## 注意
 
-当前如果没有 `map` frame，就用 WORLD 验证模式；要建图和正式导航，保留 MAP 模式，并让 SLAM/AMCL 发布 `map -> odom`。
+正式巡查和语义导航应使用 `map` 模式，并让 SLAM/AMCL 发布 `map -> odom`。`odom` 模式只用于联调和排障。
 
 ## 当前简单场景
 
 当前推荐的验证场景是一个简单房间：
 
 - 入口：`(-2.6, 0.0)`
-- 出口：`(2.6, 0.0)`
-- 中间墙：`x = 0.0`，用于验证 Nav2 是否能绕障碍到达目标
+- 出口：`(3.0, 0.0)`
+- 中间板：`x = 0.0`，长度 `1m`，用于验证 Nav2 是否能绕障碍到达目标

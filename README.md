@@ -38,10 +38,11 @@ cd backend/robot_service
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-导航默认使用 `/odom/ground_truth`，这样 API 坐标和 Gazebo `world` 坐标一致。需要切回里程计坐标时可以启动前设置：
+导航默认使用 `/odom/ground_truth` 读取当前位姿。正式地图导航使用 `map` 作为 Nav2 目标 frame，并由 SLAM / AMCL 发布 `map -> odom`：
 
 ```bash
-export ROBOT_ODOM_TOPIC=/odom
+export ROBOT_NAV2_FRAME=map
+export ROBOT_ODOM_TOPIC=/odom/ground_truth
 ```
 
 默认导航策略是 `planner=auto`：
@@ -54,8 +55,8 @@ export ROBOT_ODOM_TOPIC=/odom
 
 Nav2 保留两套参数：
 
-- `maps/nav2_params_odom.yaml`：无 `map -> odom` 时验证 Nav2 是否能跑通。
-- `maps/nav2_params.yaml`：正式 MAP 模式，用于后续 SLAM/AMCL 建图定位后的导航。
+- `maps/nav2_params.yaml`：正式 MAP 模式，用于建图、定位和语义导航。
+- `maps/nav2_params_odom.yaml`：调试用纯 `odom` 验证模式。
 
 ## 接口优先级
 

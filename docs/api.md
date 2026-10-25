@@ -118,7 +118,7 @@
 
 ## `POST /robot/go_to`
 
-坐标导航到目标点。当前版本默认使用 `/odom/ground_truth` 作为当前位姿来源。`planner` 默认是 `astar`：先跑本地 A* 栅格规划，再逐个 waypoint 执行闭环转向和闭环前进。
+坐标导航到目标点。当前版本默认使用 `/odom/ground_truth` 作为当前位姿来源。`planner` 默认是 `astar`：先跑本地 A* 栅格规划，再逐个 waypoint 执行闭环转向和闭环前进。正式地图导航时，`nav2` 会把目标点按 `map` frame 发送给 Nav2；`odom` 只用于调试链路。
 
 请求体：
 
@@ -159,7 +159,7 @@
 
 ## `POST /robot/go_to_location`
 
-按语义点位名称导航。后端先从 `maps/locations.json` 查出坐标，再调用 `go_to(x, y)`。
+按语义点位名称导航。后端先从 `maps/world_map.json` 或 `maps/locations.json` 查出坐标，再调用 `go_to(x, y)`。
 
 请求体：
 
@@ -196,9 +196,9 @@ A* 会按 `robot_radius_m` 对障碍物做膨胀，避免路径贴边。
 
 ## Nav2
 
-Nav2 action 客户端使用 `nav2_msgs/action/NavigateToPose`。默认 action 名称是 `navigate_to_pose`，目标 frame 会随 `ROBOT_NAV2_FRAME` 变化，正式模式用 `map`，WORLD 验证模式用 `world`。
+Nav2 action 客户端使用 `nav2_msgs/action/NavigateToPose`。默认 action 名称是 `navigate_to_pose`，正式地图导航的目标 frame 使用 `map`，调试时可切到 `odom`。
 
-如果后面要临时验证无地图 TF 的 Nav2 链路，可以用 `maps/nav2_params_odom.yaml` 并把 `ROBOT_NAV2_FRAME` 设为 `odom`。正式建图和导航应使用 `maps/nav2_params.yaml`，并由 SLAM/AMCL 发布 `map -> odom`。
+正式建图和导航应使用 `maps/nav2_params.yaml`，并由 SLAM/AMCL 发布 `map -> odom`。如果只是联调控制器和行为树，可以临时使用 `maps/nav2_params_odom.yaml`。
 
 可用环境变量：
 
